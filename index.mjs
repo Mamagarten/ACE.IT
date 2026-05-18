@@ -49,7 +49,6 @@ export const handler = async (event) => {
         return {
             statusCode: 201,
             headers: {
-                "Access-Control-Allow-Origin": "*",
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({ message: "Raw report data saved successfully!" }),
