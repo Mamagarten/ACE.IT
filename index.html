@@ -687,11 +687,72 @@
             e.target.value = ''; 
         });
 
-        // 7. BUTTON: Zu AWS senden
-        document.getElementById('uploadAwsBtn').addEventListener('click', () => {
-            const data = getFormData();
-            console.log("AWS Payload:", data);
-            alert('Daten bereit für das AWS API Gateway! (Payload in der Konsole sichtbar)');
+       // 7. BUTTON: Zu AWS senden
+        document.getElementById('uploadAwsBtn').addEventListener('click', async () => {
+            const rawData = getFormData();
+            const dateStr = rawData.report_date || getTodayDateString();
+            
+            // Deine Live-AWS-Lambda-Funktions-URL hier einfügen!
+            const awsLambdaUrl = "HIER_DEINE_LAMBDA_FUNCTION_URL_EINFÜGEN"; 
+
+            if (!awsLambdaUrl.startsWith("https://")) {
+                alert("Bitte füge zuerst deine echte Lambda-Funktions-URL in den Code ein!");
+                return;
+            }
+
+            const kids = ['artur', 'cesar', 'emelia'];
+            const payloads = kids.map(child => {
+                return {
+                    report_date: dateStr,
+                    child_id: child,
+                    // Reines Raw-Data Mapping ohne Berechnungen
+                    sleep_time: rawData[`${child}_sleep`],
+                    wake_time: rawData[`${child}_wake`],
+                    mood_wake: rawData[`${child}_mood_wake`],
+                    mood_school: rawData[`${child}_mood_school`],
+                    homework: rawData[`${child}_homework`],
+                    violence_incidents: parseInt(rawData[`${child}_violence`]) || 0,
+                    swear_words: parseInt(rawData[`${child}_words`]) || 0,
+                    corner_state: rawData[`${child}_corner_state`],
+                    
+                    // Allgemeine Haus-Daten
+                    who_is_up: rawData.who_is_up,
+                    parents_bed: rawData.parents_bed,
+                    kitchen_state: rawData.kitchen_state,
+                    living_room_state: rawData.living_room_state,
+                    bedtime_story: rawData.bedtime_story,
+                    general_notes: rawData.general_notes
+                };
+            });
+
+            const originalText = document.getElementById('uploadAwsBtn').innerText;
+            document.getElementById('uploadAwsBtn').innerText = "Wird gesichert... ⏳";
+            document.getElementById('uploadAwsBtn').disabled = true;
+
+            try {
+                const uploadPromises = payloads.map(payload => {
+                    return fetch(awsLambdaUrl, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(payload)
+                    }).then(res => {
+                        if (!res.ok) throw new Error(`Fehler bei ${payload.child_id}`);
+                        return res.json();
+                    });
+                });
+
+                await Promise.all(uploadPromises);
+                alert(`Erfolgreich! Die Rohdaten für Artur, César und Emelia wurden in AWS gespeichert. 🎉`);
+                
+            } catch (error) {
+                console.error("AWS Upload Fehler:", error);
+                alert("Fehler beim Speichern in AWS!");
+            } finally {
+                document.getElementById('uploadAwsBtn').innerText = originalText;
+                document.getElementById('uploadAwsBtn').disabled = false;
+            }
         });
     </script>
 </body>
